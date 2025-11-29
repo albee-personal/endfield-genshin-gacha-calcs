@@ -26,7 +26,7 @@ pub fn endfield_pull(state: &mut EndfieldGachaState, rng: &mut ThreadRng) {
         // this assumption makes the gacha worse than it is, so
         // if I'm wrong then just comment out this and rerun the
         // simulation.
-        // state.pity = 0;
+        state.pity = 0;
 
         return;
     }
@@ -69,8 +69,10 @@ pub fn endfield_pull_untilrateup(
 
         endfield_pull(state, rng);
         if state.rateups > previous_rateup_amount {
+            state.guarantee_counter = 0; // reset the guarantee since we stop pulling on the banner once we get a rateup we want
             // we got a rateup! stop pulling.
             return;
         }
     }
 }
+
