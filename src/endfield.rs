@@ -6,6 +6,7 @@ pub struct EndfieldGachaState {
     pub offrates: i32,
     pub pity: i32,
     pub guarantee_counter: i32,
+    pub has_first_guarantee: bool,
     pub total_pulls: i32,
 }
 
@@ -17,10 +18,13 @@ pub fn endfield_pull(state: &mut EndfieldGachaState, rng: &mut ThreadRng) {
     state.total_pulls += 1; // track the pull
     state.guarantee_counter += 1; // track the 120 guarantee
 
-    if state.guarantee_counter >= ENDFIELD_PITY_LIMIT {
+    let guarantee_limit = if state.has_first_guarantee { 120 } else { 240 };
+
+    if state.guarantee_counter >= guarantee_limit {
         // if we already done 120 pulls, give the 6*
         state.rateups += 1;
         state.guarantee_counter = 0;
+        state.has_first_guarantee = false; // next one will be 240
 
         // I assume that the guaranteed 6* DOES reset the pity.
         // this assumption makes the gacha worse than it is, so
@@ -62,6 +66,8 @@ pub fn endfield_pull_untilrateup(
     rng: &mut ThreadRng,
 ) {
     let previous_rateup_amount = state.rateups;
+    state.has_first_guarantee = true;
+    state.guarantee_counter = 0;
 
     // pull until budget runs out.
     for _ in 0..*budget {
@@ -69,10 +75,32 @@ pub fn endfield_pull_untilrateup(
 
         endfield_pull(state, rng);
         if state.rateups > previous_rateup_amount {
-            state.guarantee_counter = 0; // reset the guarantee since we stop pulling on the banner once we get a rateup we want
             // we got a rateup! stop pulling.
             return;
         }
     }
 }
 
+pub fn endfield_pull_untilrateup_max_pot(
+    budget: &mut i32,
+    state: &mut EndfieldGachaState,
+    rng: &mut ThreadRng,
+) -> bool {
+    let previous_rateup_amount = state.rateups;
+    state.has_first_guarantee = true;
+    state.guarantee_counter = 0;
+
+    // pull until budget runs out.
+    for _ in 0..*budget {
+        *budget -= 1; // spend 1 pull of budget
+
+        endfield_pull(state, rng);
+        let rateups_acquired = state.rateups - previous_rateup_amount;
+        if rateups_acquired >= 6 {
+            // we got max pot, stop pulling
+            return true;
+        }
+    }
+
+    return false;
+}
