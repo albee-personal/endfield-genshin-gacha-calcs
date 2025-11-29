@@ -75,3 +75,23 @@ pub fn genshin_pull_untilrateup(
         }
     }
 }
+
+pub fn genshin_pull_untilrateup_max_pot(
+    budget: &mut i32,
+    state: &mut GenshinGachaState,
+    rng: &mut ThreadRng,
+) {
+    let previous_rateup_amount = state.rateups;
+
+    // pull until budget runs out.
+    for _ in 0..*budget {
+        *budget -= 1; // spend 1 pull of budget
+
+        genshin_pull(state, rng);
+        let rateups_acquired = state.rateups - previous_rateup_amount;
+        if rateups_acquired >= 7 {
+            // we got max pot, stop pulling
+            return;
+        }
+    }
+}
